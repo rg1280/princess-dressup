@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#FF8FB8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="おひめさま">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}*,*::before,*::after{box-sizing:inherit}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>おひめさま きせかえ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet">
+<style>
+/* layout: 1画面 — 上にお姫様3人のステージ、まんなかにおしゃれ箱、いちばん下に大きな再生ボタン */
+:root{
+  --sky:#FFF2F7; --stage1:#FFE3EF; --stage2:#F1E6FF; --ink:#6B3A5B;
+  --pink:#FF6FA5; --pinkDeep:#D9467F; --line:#F6C9DD; --card:#FFFFFF; --cardSoft:#FFF7FB; --gold:#F5B82E;
+  --font:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Yu Gothic UI","Meiryo",sans-serif;
+  color-scheme:light;
+}
+html,body{height:100%}
+body{margin:0;background:var(--sky);color:var(--ink);font-family:var(--font);overflow:hidden;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+.app{height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;
+  padding-inline:16px;padding-block:8px;max-width:1100px;margin:0 auto}
+
+/* ステージ */
+.main{flex:1 1 0;min-height:0;display:flex;flex-direction:column;gap:8px}
+@media (min-aspect-ratio:1/1){.main{flex-direction:row}.main .stagecol{flex:1.35 1 0}.main .tray{flex:1 1 0}}
+.stagecol{flex:1.25 1 0;min-height:0;min-width:0;display:flex;flex-direction:column;gap:6px}
+.ptabs{flex:none;display:flex;gap:8px;justify-content:center}
+.ptab{flex:1 1 0;max-width:110px;height:clamp(48px,8vh,70px);border-radius:18px;border:3px solid var(--line);background:var(--card);cursor:pointer;padding:2px;display:grid;place-items:center;transition:transform .12s}
+.ptab svg{height:100%;width:100%;display:block}
+.ptab[aria-selected="true"]{background:#FFD3E5;border-color:var(--pinkDeep);transform:translateY(-2px);box-shadow:0 4px 0 #E79AB9}
+.ptab:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.stage{position:relative;flex:1 1 0;min-height:0;min-width:0;display:flex;align-items:stretch;gap:2px;border-radius:26px;overflow:hidden;
+  background:linear-gradient(180deg,var(--stage1),var(--stage2) 68%,#FFE6F1);border:3px solid var(--line)}
+.backdrop{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+.stage::before{display:none;z-index:0;content:"";position:absolute;left:-10%;right:-10%;bottom:-9%;height:24%;
+  background:radial-gradient(ellipse at 50% 40%,#FFC9DF 0,#FFD9E9 45%,transparent 70%)}
+.princess{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;position:relative;z-index:1;padding-block:6px 6px}
+.fig{flex:1 1 0;min-height:0;width:100%;perspective:600px}
+.dancer,.spinner{height:100%;width:100%}
+.dancer{transform-origin:50% 100%;will-change:transform}
+.fig svg{width:100%;height:100%;display:block;overflow:visible;touch-action:none;transition:filter .15s;filter:drop-shadow(0 6px 8px rgba(120,40,90,.16))}
+.princess.hover .fig svg{filter:drop-shadow(0 0 12px #FFD54A) drop-shadow(0 0 4px #FFF)}
+.worn{cursor:grab}
+.eyes{transform-box:fill-box;transform-origin:center;animation:blink 4.6s infinite}
+.p1 .eyes{animation-delay:-1.7s}.p2 .eyes{animation-delay:-3.1s}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.12)}}
+.stk{animation:tw 2.2s ease-in-out infinite}
+.playing .pup{animation:pupHop .6s ease-in-out infinite}
+.playing .fs.pup{animation:pupHopDiv .6s ease-in-out infinite}
+.playing .fs.pup:nth-child(2n){animation-delay:-.3s}
+@keyframes pupHop{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-14px) rotate(8deg)}}
+@keyframes pupHopDiv{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-30%) rotate(8deg)}}
+@keyframes tw{0%,100%{transform:scale(1)}50%{transform:scale(1.13)}}
+
+/* おどる */
+.playing .dancer{animation:hop .9s ease-in-out infinite}
+.playing .p1 .dancer{animation-delay:-.3s}.playing .p2 .dancer{animation-delay:-.6s}
+@keyframes hop{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-6%) rotate(-5deg)}50%{transform:translateY(0) rotate(0)}75%{transform:translateY(-6%) rotate(5deg)}}
+.playing .spinner{animation:twirl 5.4s ease-in-out infinite}
+.playing .p1 .spinner{animation-delay:-1.8s}.playing .p2 .spinner{animation-delay:-3.6s}
+@keyframes twirl{0%,72%{transform:rotateY(0)}100%{transform:rotateY(360deg)}}
+.playing .arm-l{animation:waveL .9s ease-in-out infinite}
+.playing .arm-r{animation:waveR .9s ease-in-out infinite;animation-delay:-.45s}
+@keyframes waveL{0%,100%{transform:rotate(0)}50%{transform:rotate(58deg)}}
+@keyframes waveR{0%,100%{transform:rotate(0)}50%{transform:rotate(-58deg)}}
+.playing .skirt{animation:sway .9s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+
+.twinkles{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .4s;z-index:3}
+.playing .twinkles{opacity:1}
+.twinkles span{position:absolute;width:22px;height:22px;animation:floatUp 3s linear infinite}
+@keyframes floatUp{0%{transform:translateY(30px) scale(.4) rotate(0);opacity:0}20%{opacity:1}100%{transform:translateY(-120px) scale(1) rotate(180deg);opacity:0}}
+
+.free{position:absolute;inset:0;z-index:2;pointer-events:none}
+.free .fs{position:absolute;pointer-events:auto;touch-action:none;cursor:grab}
+.free .fs svg{width:100%;height:100%;display:block}
+
+/* おしゃれ箱 */
+.tray{flex:1 1 0;min-height:0;min-width:0;background:var(--card);border-radius:22px;border:3px solid var(--line);padding:8px;display:flex;overflow:hidden}
+.items{flex:1 1 0;min-width:0;display:grid;grid-template-columns:repeat(var(--cols,8),var(--tile,56px));grid-auto-rows:var(--tile,56px);gap:var(--gap,6px);justify-content:center;align-content:center}
+.tile{border-radius:22%;background:var(--cardSoft);border:2px solid var(--line);box-sizing:border-box;
+  display:grid;place-items:center;cursor:grab;touch-action:none;transition:transform .1s}
+.tile svg{width:80%;height:80%;display:block;pointer-events:none;filter:drop-shadow(0 2px 2px rgba(120,40,90,.18))}
+.tile:active{transform:scale(.9)}
+.tile.g1{background:#FFF0F6}.tile.g2{background:#FFF8E1}.tile.g3{background:#F1EEFF}.tile.g4{background:#EAF7FF}.tile.g5{background:#FFF1E2}
+.ctl:focus-visible,#play:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+/* ボタン */
+.controls{flex:none;display:flex;justify-content:center;align-items:center;gap:22px}
+#play{width:clamp(70px,13vw,92px);aspect-ratio:1;border-radius:50%;border:4px solid #fff;cursor:pointer;display:grid;place-items:center;
+  background:radial-gradient(circle at 35% 30%,#FFA3C7,#F0558F 70%);box-shadow:0 6px 0 #C23A72,0 10px 22px rgba(200,60,120,.35);transition:transform .1s}
+#play:active{transform:translateY(4px);box-shadow:0 2px 0 #C23A72}
+#play svg{width:44%;height:44%}
+.ctl{width:clamp(48px,8vw,60px);aspect-ratio:1;border-radius:50%;background:var(--card);border:3px solid var(--line);cursor:pointer;display:grid;place-items:center;padding:0}
+.ctl svg{width:58%;height:58%}
+.ctl.shake{animation:wig .18s ease-in-out 3}
+.ctl .lid{transform-box:fill-box;transform-origin:0% 100%}
+.ctl:active .lid{transform:rotate(-25deg)}
+@keyframes wig{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+
+.ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:50;filter:drop-shadow(0 8px 8px rgba(120,40,90,.3))}
+.ghost svg{width:100%;height:100%;display:block}
+.fx{position:fixed;left:0;top:0;pointer-events:none;z-index:60;width:18px;height:18px;animation:burst .7s ease-out forwards}
+@keyframes burst{0%{transform:translate(var(--x0),var(--y0)) scale(.3);opacity:1}100%{transform:translate(var(--x1),var(--y1)) scale(1);opacity:0}}
+#measure{position:absolute;left:-9999px;top:0;width:10px;height:10px;visibility:hidden}
+
+@media (prefers-reduced-motion:reduce){
+  .stk{animation:none}
+  .twinkles span{animation-duration:6s}
+}
+</style>
+
+<div class="app" id="app">
+  <div class="main">
+  <div class="stagecol">
+  <div class="ptabs" id="ptabs" role="tablist" aria-label="おひめさま"></div>
+  <div class="stage" id="stage">
+    <svg class="backdrop" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <linearGradient id="bgWall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3F55A8"/><stop offset="1" stop-color="#26306E"/></linearGradient>
+        <linearGradient id="bgSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#101536"/><stop offset="1" stop-color="#3C3A86"/></linearGradient>
+        <linearGradient id="bgFloor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C9C3E6"/><stop offset="1" stop-color="#F4F1FB"/></linearGradient>
+        <linearGradient id="bgPillar" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#B8860B"/><stop offset=".4" stop-color="#FFE38A"/><stop offset="1" stop-color="#9C6F08"/></linearGradient>
+        <linearGradient id="bgCurtain" x1="0" y1="0" x2="1" y2="0" spreadMethod="reflect"><stop offset="0" stop-color="#7A1230"/><stop offset=".5" stop-color="#B8264F"/><stop offset="1" stop-color="#5E0C24"/></linearGradient>
+      </defs>
+      <rect width="400" height="300" fill="url(#bgWall)"/>
+      <g>
+        <path d="M45,190 L45,90 Q45,50 75,50 Q105,50 105,90 L105,190Z" fill="url(#bgSky)" stroke="#FFFFFF" stroke-width="5"/>
+        <path d="M170,190 L170,80 Q170,36 200,36 Q230,36 230,80 L230,190Z" fill="url(#bgSky)" stroke="#FFFFFF" stroke-width="5"/>
+        <path d="M295,190 L295,90 Q295,50 325,50 Q355,50 355,90 L355,190Z" fill="url(#bgSky)" stroke="#FFFFFF" stroke-width="5"/>
+        <path d="M75,52 L75,190 M45,120 L105,120 M200,38 L200,190 M170,112 L230,112 M325,52 L325,190 M295,120 L355,120" stroke="#FFFFFF" stroke-width="3" opacity=".9"/>
+        <circle cx="215" cy="66" r="9" fill="#FFF6C9"/><circle cx="219" cy="63" r="8" fill="url(#bgSky)" opacity=".9"/>
+        <g fill="#FFFFFF"><circle cx="58" cy="80" r="1.4"/><circle cx="92" cy="98" r="1.1"/><circle cx="62" cy="140" r="1.2"/><circle cx="185" cy="70" r="1.3"/><circle cx="188" cy="140" r="1.1"/><circle cx="218" cy="150" r="1.4"/><circle cx="310" cy="84" r="1.2"/><circle cx="342" cy="104" r="1.4"/><circle cx="330" cy="150" r="1.1"/></g>
+      </g>
+      <rect x="128" y="20" width="18" height="180" fill="url(#bgPillar)"/><rect x="254" y="20" width="18" height="180" fill="url(#bgPillar)"/>
+      <rect x="124" y="16" width="26" height="8" rx="2" fill="#FFD23F"/><rect x="250" y="16" width="26" height="8" rx="2" fill="#FFD23F"/>
+      <path d="M0,198 L400,198 L400,300 L0,300Z" fill="url(#bgFloor)"/>
+      <g stroke="#A79ED2" stroke-width="1" opacity=".7">
+        <path d="M200,198 L-200,300 M200,198 L-60,300 M200,198 L80,300 M200,198 L200,300 M200,198 L320,300 M200,198 L460,300 M200,198 L600,300"/>
+        <path d="M0,206 L400,206 M0,218 L400,218 M0,236 L400,236 M0,262 L400,262"/>
+      </g>
+      <rect x="0" y="194" width="400" height="6" fill="#FFFFFF" opacity=".8"/>
+      <path d="M0,0 L58,0 Q50,60 40,110 Q30,150 18,200 L0,200Z" fill="url(#bgCurtain)"/>
+      <path d="M400,0 L342,0 Q350,60 360,110 Q370,150 382,200 L400,200Z" fill="url(#bgCurtain)"/>
+      <path d="M0,0 L400,0 L400,14 Q300,30 200,14 Q100,30 0,14Z" fill="url(#bgCurtain)"/>
+      <circle cx="34" cy="112" r="5" fill="#FFD23F"/><circle cx="366" cy="112" r="5" fill="#FFD23F"/>
+    </svg>
+    <div class="free" id="free"></div>
+    <div class="twinkles" id="twinkles"></div>
+  </div>
+  </div>
+  <div class="tray" id="tray">
+    <div class="items" id="items"></div>
+  </div>
+  </div>
+  <div class="controls">
+    <button class="ctl" id="reset" type="button" aria-label="ごみばこ"></button>
+    <button id="play" type="button" aria-label="おどる"></button>
+    <button class="ctl" id="music" type="button" aria-pressed="true" aria-label="おんがく"></button>
+  </div>
+</div>
+<svg id="fxdefs" width="0" height="0" style="position:absolute;left:0;top:0" aria-hidden="true" focusable="false"><defs>
+  <filter id="puff" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3.2" result="b"/>
+    <feDiffuseLighting in="b" surfaceScale="5" diffuseConstant="1" lighting-color="#FFFFFF" result="d"><feDistantLight azimuth="225" elevation="50"/></feDiffuseLighting>
+    <feComposite in="SourceGraphic" in2="d" operator="arithmetic" k1="0.75" k2="0.38" k3="0" k4="0" result="lit"/>
+    <feSpecularLighting in="b" surfaceScale="5" specularConstant="0.7" specularExponent="38" lighting-color="#FFFFFF" result="s"><feDistantLight azimuth="225" elevation="60"/></feSpecularLighting>
+    <feComposite in="s" in2="SourceAlpha" operator="in" result="sIn"/>
+    <feComposite in="lit" in2="sIn" operator="arithmetic" k1="0" k2="1" k3="0.32" k4="0" result="all"/>
+    <feComposite in="all" in2="SourceAlpha" operator="in"/>
+  </filter>
+  <filter id="puffS" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="1.3" result="b"/>
+    <feDiffuseLighting in="b" surfaceScale="2.6" diffuseConstant="1" lighting-color="#FFFFFF" result="d"><feDistantLight azimuth="225" elevation="50"/></feDiffuseLighting>
+    <feComposite in="SourceGraphic" in2="d" operator="arithmetic" k1="0.75" k2="0.38" k3="0" k4="0" result="lit"/>
+    <feSpecularLighting in="b" surfaceScale="2.6" specularConstant="0.75" specularExponent="34" lighting-color="#FFFFFF" result="s"><feDistantLight azimuth="225" elevation="60"/></feSpecularLighting>
+    <feComposite in="s" in2="SourceAlpha" operator="in" result="sIn"/>
+    <feComposite in="lit" in2="sIn" operator="arithmetic" k1="0" k2="1" k3="0.38" k4="0" result="all"/>
+    <feComposite in="all" in2="SourceAlpha" operator="in"/>
+  </filter>
+  <radialGradient id="iris0" cx="50%" cy="70%" r="60%"><stop offset="0" stop-color="#9FD6FF"/><stop offset="1" stop-color="#2F6FC0"/></radialGradient>
+  <radialGradient id="iris1" cx="50%" cy="70%" r="60%"><stop offset="0" stop-color="#D2B8FF"/><stop offset="1" stop-color="#6A45C4"/></radialGradient>
+  <radialGradient id="iris2" cx="50%" cy="70%" r="60%"><stop offset="0" stop-color="#FFD58A"/><stop offset="1" stop-color="#A8641E"/></radialGradient>
+  <linearGradient id="pleat" x1="0" y1="0" x2=".09" y2="0" spreadMethod="repeat"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset=".5" stop-color="#000" stop-opacity=".11"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+  <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".05"/><stop offset=".28" stop-color="#fff" stop-opacity=".38"/><stop offset=".48" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#3A0F2A" stop-opacity=".16"/></linearGradient>
+  <radialGradient id="sheenR" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#3A0F2A" stop-opacity=".18"/></radialGradient>
+  <linearGradient id="goldG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF6C4"/><stop offset=".35" stop-color="#FFD23F"/><stop offset=".7" stop-color="#C98A06"/><stop offset="1" stop-color="#FFE68A"/></linearGradient>
+  <linearGradient id="silverG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".4" stop-color="#E3E8F1"/><stop offset=".75" stop-color="#9AA4B8"/><stop offset="1" stop-color="#F3F5FA"/></linearGradient>
+  <radialGradient id="pearlG" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".55" stop-color="#F6EEF4"/><stop offset="1" stop-color="#CDBFCB"/></radialGradient>
+  <radialGradient id="blush"><stop offset="0" stop-color="#FF6F9C" stop-opacity=".55"/><stop offset="1" stop-color="#FF6F9C" stop-opacity="0"/></radialGradient>
+  <radialGradient id="ground"><stop offset="0" stop-color="#1E1A4A" stop-opacity=".38"/><stop offset="1" stop-color="#8A3F6A" stop-opacity="0"/></radialGradient>
+</defs></svg>
+<svg id="measure" aria-hidden="true"></svg>
+
+<script>
+(function(){
+const f = n => Math.round(n*10)/10;
+
+/* ---------- 絵のパーツ ---------- */
+function starPath(r, ir, n){ ir = ir || r*.48; n = n || 5; let d='';
+  for(let i=0;i<n*2;i++){ const rr=i%2?ir:r, a=-Math.PI/2+i*Math.PI/n; d+=(i?'L':'M')+f(rr*Math.cos(a))+','+f(rr*Math.sin(a)); }
+  return d+'Z'; }
+const starAt=(x,y,r,fill,stroke)=>`<path transform="translate(${x},${y})" d="${starPath(r)}" fill="${fill}"${stroke?` stroke="${stroke}" stroke-width="${f(r/7)}" stroke-linejoin="round"`:''}/>`;
+const heartPath=s=>`M0,${f(s)} C${f(-1.4*s)},${f(.15*s)} ${f(-.95*s)},${f(-1.05*s)} 0,${f(-.45*s)} C${f(.95*s)},${f(-1.05*s)} ${f(1.4*s)},${f(.15*s)} 0,${f(s)}Z`;
+const heartAt=(x,y,s,fill,stroke)=>`<path transform="translate(${x},${y})" d="${heartPath(s)}" fill="${fill}"${stroke?` stroke="${stroke}" stroke-width="${f(s/6)}" stroke-linejoin="round"`:''}/>`;
+function flowerAt(x,y,r,petal,center){ let s='';
+  for(let k=0;k<5;k++){ const a=-Math.PI/2+k*2*Math.PI/5; s+=`<circle cx="${f(x+r*.62*Math.cos(a))}" cy="${f(y+r*.62*Math.sin(a))}" r="${f(r*.5)}" fill="${petal}"/>`; }
+  return s+`<circle cx="${x}" cy="${y}" r="${f(r*.38)}" fill="${center}"/>`; }
+const gemAt=(x,y,r,fill)=>`<path d="M${f(x-r)},${y} L${x},${f(y-r*1.1)} L${f(x+r)},${y} L${x},${f(y+r*1.1)}Z" fill="${fill}" stroke="#ffffff" stroke-width="${f(r/4)}" stroke-linejoin="round"/><path d="M${f(x-r)},${y} L${x},${f(y-r*1.1)} L${x},${y}Z" fill="#fff" opacity=".38"/><path d="M${x},${y} L${f(x+r)},${y} L${x},${f(y+r*1.1)}Z" fill="#000" opacity=".16"/><circle cx="${f(x-r*.3)}" cy="${f(y-r*.35)}" r="${f(r*.22)}" fill="#fff"/>`;
+const ball=(x,y,r,fill,stroke)=>`<circle cx="${f(x)}" cy="${f(y)}" r="${r}" fill="${fill}"${stroke?` stroke="${stroke}" stroke-width="1"`:''}/>`;
+
+/* ---------- アイテム ---------- */
+const ITEMS = {}, BY_CAT = {};
+function add(cat,id,main,top){ ITEMS[id]={id,cat,main,top:top||''}; (BY_CAT[cat]=BY_CAT[cat]||[]).push(id); }
+
+// ドレス（原点＝首の下 100,120／腰は y=78）— 6着とも形がちがう
+const wrapSkirt=svg=>`<g transform="translate(0,78)"><g class="skirt"><g transform="translate(0,-78)">${svg}</g></g></g>`;
+function bodice(c,neck){
+  const top = neck==='sweet' ? 'M-27,10 Q-14,0 0,12 Q14,0 27,10' : neck==='square' ? 'M-27,6 L-13,14 L13,14 L27,6' : 'M-27,4 Q0,16 27,4';
+  return `<path d="${top} L23,80 Q0,86 -23,80Z" fill="${c.a}" stroke="${c.s}" stroke-width="2" stroke-linejoin="round"/>`;
+}
+const sash=(c,bow)=>`<rect x="-25" y="72" width="50" height="10" rx="5" fill="${c.t}" stroke="${c.s}" stroke-width="1"/>`+
+  (bow?`<path d="M0,77 L-14,68 L-14,86Z M0,77 L14,68 L14,86Z" fill="${c.t}" stroke="${c.s}" stroke-width="1.4" stroke-linejoin="round"/>${ball(0,77,3.6,c.s)}`:'');
+const decoAt=(kind,pts,col)=>pts.map(([x,y])=>kind==='dots'?ball(x,y,4.5,col):kind==='stars'?starAt(x,y,7,col):kind==='hearts'?heartAt(x,y,6,col):kind==='flowers'?flowerAt(x,y,8,col,'#FFE066'):gemAt(x,y,4.5,col)).join('');
+
+// 1 ふんわりボールガウン
+(()=>{ const c={a:'#FF8FB8',b:'#FFC6DA',t:'#FFFFFF',s:'#E2649A'};
+  let hem=''; for(let x=-80;x<=80;x+=12){ hem+=ball(x,230+11*(1-(x/86)**2),5.5,c.t); }
+  const skirt=wrapSkirt(`<path d="M-24,76 Q-58,150 -86,230 Q0,252 86,230 Q58,150 24,76Z" fill="${c.a}" stroke="${c.s}" stroke-width="2"/>
+    <path d="M-18,80 Q-34,150 -48,238 Q0,250 48,238 Q34,150 18,80Z" fill="${c.b}" opacity=".7"/>
+    ${decoAt('dots',[[-30,130],[10,116],[34,160],[-48,188],[-8,172],[52,204],[-62,214],[22,204],[-22,214],[0,144],[40,224],[-40,158]],'#FFFFFF')}${hem}`);
+  const sleeves=`<ellipse cx="-29" cy="11" rx="13" ry="11" fill="${c.b}" stroke="${c.a}" stroke-width="3"/><ellipse cx="29" cy="11" rx="13" ry="11" fill="${c.b}" stroke="${c.a}" stroke-width="3"/>`;
+  add('dress','d-ball',skirt+bodice(c)+sash(c,true),sleeves); })();
+
+// 2 マーメイド（ひざまで細く、すそが広がる）
+(()=>{ const c={a:'#7EC8F2',b:'#CDEBFF',t:'#FFFFFF',s:'#4B9FD0'};
+  let frill=''; for(let x=-20;x<=20;x+=8) frill+=ball(x,188,4.5,c.t);
+  const skirt=wrapSkirt(`<path d="M-23,76 Q-30,140 -20,186 Q-40,214 -68,242 Q0,258 68,242 Q40,214 20,186 Q30,140 23,76Z" fill="${c.a}" stroke="${c.s}" stroke-width="2"/>
+    <path d="M-20,188 Q-34,218 -48,246 Q0,256 48,246 Q34,218 20,188Z" fill="${c.b}"/>
+    <path d="M-34,218 Q0,232 34,218 M-52,238 Q0,252 52,238" fill="none" stroke="${c.a}" stroke-width="2"/>
+    ${decoAt('stars',[[-10,108],[10,132],[-8,158],[8,176],[-26,232],[26,232],[0,240]],'#FFF19A')}${frill}`);
+  const top=`<path d="M-40,8 Q0,24 40,8 L38,19 Q0,33 -38,19Z" fill="${c.b}" stroke="${c.a}" stroke-width="2.4" stroke-linejoin="round"/>${ball(-30,15,2.4,'#FFF19A')}${ball(30,15,2.4,'#FFF19A')}${ball(0,23,2.6,'#FFF19A')}`;
+  add('dress','d-mermaid',skirt+bodice(c,'sweet')+sash(c,false),top); })();
+
+// 3 みじかいチュチュ（ギザギザのチュール）
+(()=>{ const c={a:'#B79CF0',b:'#E4D8FF',t:'#FFD6EC',s:'#8A6CD0'};
+  const zig=(w,y1,y2)=>{ let d=`M-24,78`; for(let x=-w,k=0;x<=w;x+=10,k++) d+=` L${x},${k%2?y2:y1}`; return d+' L24,78Z'; };
+  const skirt=wrapSkirt(`<path d="${zig(66,142,128)}" fill="${c.a}" stroke="${c.s}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="${zig(56,130,118)}" fill="${c.b}" stroke="${c.a}" stroke-width="1.5" stroke-linejoin="round"/>
+    ${decoAt('hearts',[[-34,112],[0,104],[34,112],[-16,120],[16,120]],'#FF8FC2')}`);
+  const sleeves=`<path d="M-22,4 Q-38,0 -40,16 Q-30,20 -22,14Z M22,4 Q38,0 40,16 Q30,20 22,14Z" fill="${c.b}" stroke="${c.a}" stroke-width="2" stroke-linejoin="round"/>`;
+  add('dress','d-tutu',skirt+bodice(c,'square')+sash(c,true),sleeves); })();
+
+// 4 3だんフリル
+(()=>{ const c={a:'#6FD4B4',b:'#CFF5E8',t:'#FFE680',s:'#3FAE8C'};
+  const tier=(y1,y2,x1,x2,fill)=>{ let hem=''; for(let x=-x2+5;x<=x2-5;x+=10) hem+=ball(x,y2+2,5,fill);
+    return `<path d="M${-x1},${y1} L${-x2},${y2} Q0,${y2+8} ${x2},${y2} L${x1},${y1}Z" fill="${fill}" stroke="${c.s}" stroke-width="1.8" stroke-linejoin="round"/>${hem}`; };
+  const skirt=wrapSkirt(tier(168,236,50,86,c.a)+tier(122,182,38,62,c.b)+tier(76,134,24,42,c.a)+
+    decoAt('flowers',[[-50,210],[0,214],[50,210],[-28,158],[28,158],[0,108]],'#FF9CC6'));
+  const sleeves=`<path d="M-22,4 L-46,28 Q-34,34 -22,24Z M22,4 L46,28 Q34,34 22,24Z" fill="${c.b}" stroke="${c.a}" stroke-width="2" stroke-linejoin="round"/>`;
+  add('dress','d-tier',skirt+bodice(c)+sash(c,false)+flowerAt(0,77,9,'#FF9CC6','#FFE066'),sleeves); })();
+
+// 5 まんまるバルーン（かぼちゃドレス）
+(()=>{ const c={a:'#F7C948',b:'#FFEDB0',t:'#FFFFFF',s:'#D19A10'};
+  let gems=''; [-56,-28,0,28,56].forEach(x=>gems+=gemAt(x,206-Math.abs(x)*.12,5,'#FF7AB6'));
+  const skirt=wrapSkirt(`<path d="M-24,76 Q-94,116 -72,186 Q-40,216 0,212 Q40,216 72,186 Q94,116 24,76Z" fill="${c.a}" stroke="${c.s}" stroke-width="2"/>
+    <path d="M-12,80 Q-50,140 -40,206 M12,80 Q50,140 40,206 M0,80 L0,210" fill="none" stroke="${c.b}" stroke-width="7" stroke-linecap="round"/>${gems}`);
+  const sleeves=`<ellipse cx="-31" cy="10" rx="16" ry="14" fill="${c.b}" stroke="${c.a}" stroke-width="3"/><ellipse cx="31" cy="10" rx="16" ry="14" fill="${c.b}" stroke="${c.a}" stroke-width="3"/>
+    <path d="M-31,-3 L-31,23 M31,-3 L31,23" stroke="${c.a}" stroke-width="2"/>`;
+  add('dress','d-balloon',skirt+bodice(c)+sash(c,true)+gemAt(0,40,5,'#FF7AB6'),sleeves); })();
+
+// 6 花びらドレス
+(()=>{ const c={a:'#F05A7E',b:'#FF9CB3',t:'#FFE27A',s:'#C23A5E'};
+  let back='', front='';
+  for(let k=-3;k<=3;k++) back+=`<ellipse cx="${k*19}" cy="168" rx="22" ry="62" fill="${c.a}" stroke="${c.s}" stroke-width="1.8" transform="rotate(${-k*9} ${k*19} 110)"/>`;
+  for(let k=-2;k<=2;k++) front+=`<ellipse cx="${k*18}" cy="138" rx="17" ry="44" fill="${c.b}" stroke="${c.s}" stroke-width="1.5" transform="rotate(${-k*10} ${k*18} 96)"/>`;
+  const skirt=wrapSkirt(back+`<path d="M-24,76 L24,76 L36,120 L-36,120Z" fill="${c.a}"/>`+front);
+  const sleeves=`<ellipse cx="-30" cy="12" rx="9" ry="15" fill="${c.b}" stroke="${c.s}" stroke-width="1.6" transform="rotate(35 -30 12)"/><ellipse cx="30" cy="12" rx="9" ry="15" fill="${c.b}" stroke="${c.s}" stroke-width="1.6" transform="rotate(-35 30 12)"/>`;
+  add('dress','d-petal',skirt+bodice(c,'sweet')+sash(c,false)+flowerAt(0,77,10,'#FFE27A','#FF9F43'),sleeves); })();
+
+// かんむり（原点＝頭のてっぺん 100,35）
+add('crown','c-gold',
+  `<path d="M-26,0 L-29,-24 L-14,-11 L0,-31 L14,-11 L29,-24 L26,0Z" fill="#FFD23F" stroke="#D99A0B" stroke-width="2" stroke-linejoin="round"/>
+   <rect x="-27" y="-7" width="54" height="9" rx="3" fill="#F5B82E" stroke="#D99A0B" stroke-width="1.5"/>
+   ${ball(0,-2.5,3.3,'#FF4F7B')}${ball(-15,-2.5,3,'#5BB8FF')}${ball(15,-2.5,3,'#5FD39A')}
+   ${ball(-29,-24,3.4,'#FFF5C2','#D99A0B')}${ball(0,-31,3.6,'#FFF5C2','#D99A0B')}${ball(29,-24,3.4,'#FFF5C2','#D99A0B')}`);
+add('crown','c-tiara',
+  `<path d="M-30,2 Q-26,-14 -10,-16 L0,-30 L10,-16 Q26,-14 30,2 Q0,-8 -30,2Z" fill="#E8ECF4" stroke="#9BA5B8" stroke-width="2" stroke-linejoin="round"/>
+   ${gemAt(0,-17,6.5,'#FF7AB6')}${ball(-18,-8,2.8,'#B9E4FF')}${ball(18,-8,2.8,'#B9E4FF')}${ball(-26,-2,2.2,'#FFC2DD')}${ball(26,-2,2.2,'#FFC2DD')}`);
+add('crown','c-flower',
+  `<path d="M-28,0 Q0,-12 28,0" stroke="#6CC27A" stroke-width="4" fill="none" stroke-linecap="round"/>
+   <ellipse cx="-20" cy="-1" rx="5" ry="2.4" fill="#6CC27A" transform="rotate(-25 -20 -1)"/><ellipse cx="20" cy="-1" rx="5" ry="2.4" fill="#6CC27A" transform="rotate(25 20 -1)"/>
+   ${flowerAt(-26,-2,8,'#FF9CC6','#FFE066')}${flowerAt(-13,-7,8,'#FFE066','#FF9F43')}${flowerAt(0,-9,9,'#C7A4FF','#FFE066')}${flowerAt(13,-7,8,'#8FD3FF','#FFE066')}${flowerAt(26,-2,8,'#FF9CC6','#FFE066')}`);
+add('crown','c-heart',
+  `<path d="M-30,2 Q0,-22 30,2 Q0,-10 -30,2Z" fill="#FF9CC6" stroke="#E0558F" stroke-width="2" stroke-linejoin="round"/>
+   ${heartAt(0,-21,10,'#FF4F8B','#C2306A')}${heartAt(-17,-10,4.2,'#FFFFFF')}${heartAt(17,-10,4.2,'#FFFFFF')}`);
+add('crown','c-star',
+  `<path d="M-26,0 L-27,-17 L-13,-10 L0,-21 L13,-10 L27,-17 L26,0Z" fill="#8FD3FF" stroke="#3E9BD6" stroke-width="2" stroke-linejoin="round"/>
+   <rect x="-27" y="-6" width="54" height="8" rx="3" fill="#5CB6EE" stroke="#3E9BD6" stroke-width="1.2"/>
+   ${starAt(-27,-20,6.5,'#FFE14D','#E5A600')}${starAt(0,-26,8.5,'#FFE14D','#E5A600')}${starAt(27,-20,6.5,'#FFE14D','#E5A600')}${ball(-12,-2,2.2,'#fff')}${ball(0,-2,2.2,'#fff')}${ball(12,-2,2.2,'#fff')}`);
+
+// ネックレス（原点＝胸元 100,121）— 形がちがう4本
+function beadsOn(n,x0,y0,cy,x1,colorFn,r){ let s='';
+  for(let i=0;i<n;i++){ const t=i/(n-1), x=(1-t)**2*x0+t*t*x1, y=(1-t)**2*y0+2*(1-t)*t*cy+t*t*y0; s+=ball(x,y,r,colorFn(i),'rgba(0,0,0,.12)'); }
+  return s; }
+add('necklace','n-pearl', beadsOn(13,-19,-2,26,19,()=>'#FFFFFF',2.7)+heartAt(0,17,4.8,'#FF7AB6','#D94A86'));
+add('necklace','n-choker', `<rect x="-10" y="-13" width="20" height="6" rx="3" fill="#B794F6" stroke="#7B5CC9" stroke-width="1.2"/>
+  <ellipse cx="0" cy="-3" rx="5" ry="6" fill="#FFF5C2" stroke="#F5B82E" stroke-width="1.6"/>${heartAt(0,-3,2.4,'#FF7AB6')}`);
+const RB=['#FF6B8B','#FFA552','#FFE14D','#7ADBA8','#7CC8FF','#B794F6'];
+add('necklace','n-long', beadsOn(11,-17,-2,18,17,i=>RB[i%RB.length],2.4)+beadsOn(15,-20,-2,52,20,i=>RB[(i+3)%RB.length],2.4)+starAt(0,42,6,'#FFE14D','#E5A600'));
+add('necklace','n-collar', `<path d="M-20,-3 Q0,8 20,-3 L14,8 L0,26 L-14,8Z" fill="#FFD23F" stroke="#D99A0B" stroke-width="1.8" stroke-linejoin="round"/>
+  ${gemAt(-11,5,3,'#7CC8FF')}${gemAt(11,5,3,'#7CC8FF')}${gemAt(0,14,5.5,'#3E9BD6')}`);
+
+// イヤリング（原点＝耳の高さ 100,82）
+function pair(fn){ return fn(-37)+fn(37); }
+function ear(id,fn){ add('earrings',id,pair(fn)); ITEMS[id].icon=fn(-8)+fn(8); }
+ear('e-pearl',(x=>`${ball(x,0,2.2,'#F5B82E')}<line x1="${x}" y1="1" x2="${x}" y2="6" stroke="#F5B82E" stroke-width="1.2"/>${ball(x,9.5,3.8,'#FFFFFF','#D8CBD6')}`));
+ear('e-hoop',(x=>`<circle cx="${x}" cy="7" r="7" fill="none" stroke="#F5B82E" stroke-width="2.4"/>${ball(x,14,2,'#FF7AB6')}`));
+ear('e-chand',(x=>`${ball(x,0,2.2,'#C9D2E2')}<path d="M${x},2 L${x-6},10 M${x},2 L${x+6},10 M${x},2 L${x},16" stroke="#C9D2E2" stroke-width="1.1"/>
+  ${gemAt(x-6,11,2.4,'#7CC8FF')}${gemAt(x+6,11,2.4,'#7CC8FF')}<path d="M${x},14 Q${x-4},19 ${x},23 Q${x+4},19 ${x},14Z" fill="#3E9BD6" stroke="#fff" stroke-width=".8"/>`));
+ear('e-heart',(x=>heartAt(x,1,5,'#FF5A8F','#C2306A')));
+ear('e-star',(x=>`${ball(x,0,2,'#F5B82E')}<line x1="${x}" y1="1" x2="${x}" y2="12" stroke="#F5B82E" stroke-width="1.1"/>${starAt(x,14,5.5,'#FFE14D','#E5A600')}`));
+
+// ゆびわ（原点＝左手 42,230）
+const band=c=>`<circle cx="0" cy="3" r="5.5" fill="none" stroke="${c}" stroke-width="2.8"/>`;
+add('ring','r-diamond', band('#F5B82E')+`<path d="M-3,-2 L0,-5 L3,-2" stroke="#F5B82E" stroke-width="1.6" fill="none"/>`+gemAt(0,-6,4.8,'#BDEBFF'));
+add('ring','r-heart',   band('#F5B82E')+heartAt(0,-4,4.6,'#FF4F8B','#C2306A'));
+add('ring','r-flower',  band('#7ADBA8')+flowerAt(0,-5,9,'#FF9CC6','#FFE066'));
+add('ring','r-double',  `<circle cx="0" cy="2" r="5.5" fill="none" stroke="#C9D2E2" stroke-width="2.2"/><circle cx="0" cy="6" r="5.5" fill="none" stroke="#F5B82E" stroke-width="2.2"/>`+ball(-3.5,-3,2.4,'#E8304F','#fff')+ball(3.5,-3,2.4,'#E8304F','#fff')+ball(0,-6,2.8,'#E8304F','#fff'));
+add('ring','r-star',    band('#C9D2E2')+starAt(0,-4,5.6,'#C7A4FF','#8A6CD0'));
+
+// くつ（原点＝足 100,395）— 形がちがう5足
+function pair2(fn){ return fn(-12)+fn(12); }
+const shine=x=>`<ellipse cx="${x-3}" cy="-2" rx="3.5" ry="1.5" fill="#fff" opacity=".6"/>`;
+add('shoes','s-ballet', pair2(x=>`<path d="M${x-6},-1 L${x+6},-12 L${x-6},-22 L${x+6},-31 M${x+6},-1 L${x-6},-12 L${x+6},-22 L${x-6},-31" stroke="#FF8FB8" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <ellipse cx="${x}" cy="0" rx="12" ry="7" fill="#FF8FB8" stroke="#E2649A" stroke-width="1.8"/>${shine(x)}`));
+add('shoes','s-glass', pair2(x=>`<path d="M${x-11},-4 Q${x},-13 ${x+11},-4 L${x+2},8 Q${x},10 ${x-2},8Z" fill="rgba(205,238,255,.85)" stroke="#7CC8FF" stroke-width="1.8" stroke-linejoin="round"/>
+  ${gemAt(x,-6,3,'#BDEBFF')}${ball(x+5,1,1.2,'#fff')}`));
+add('shoes','s-boots', pair2(x=>`<path d="M${x-10},-40 L${x+10},-40 L${x+11},0 Q${x+12},8 ${x},8 Q${x-12},8 ${x-11},0Z" fill="#FFD23F" stroke="#D99A0B" stroke-width="1.8" stroke-linejoin="round"/>
+  ${ball(x-7,-41,4,'#FFFFFF')}${ball(x,-42,4,'#FFFFFF')}${ball(x+7,-41,4,'#FFFFFF')}${ball(x,-28,1.8,'#FF4F7B')}${ball(x,-18,1.8,'#FF4F7B')}${ball(x,-8,1.8,'#FF4F7B')}`));
+add('shoes','s-mary', pair2(x=>`<rect x="${x-13}" y="3" width="26" height="5" rx="2.5" fill="#C23A5E"/>
+  <ellipse cx="${x}" cy="1" rx="13" ry="8" fill="#F05A7E" stroke="#C23A5E" stroke-width="1.8"/>
+  <path d="M${x-9},-6 L${x+9},-6" stroke="#C23A5E" stroke-width="3" stroke-linecap="round"/>${heartAt(x,0,3.4,'#FFFFFF')}${ball(x+7,-6,2,'#FFE27A')}`));
+add('shoes','s-sandal', pair2(x=>`<ellipse cx="${x}" cy="3" rx="12" ry="4.5" fill="#B79CF0" stroke="#8A6CD0" stroke-width="1.5"/>
+  <path d="M${x-9},0 L${x+9},0 M${x-8},-12 L${x+8},-12 M${x},-12 L${x},0" stroke="#B79CF0" stroke-width="2.6" stroke-linecap="round"/>${flowerAt(x,-12,7,'#FFE14D','#FF9F43')}`));
+
+// かばん（原点＝右手 158,230）— 形がちがう5こ
+const handle=s=>`<path d="M-9,12 Q-10,-7 0,-7 Q10,-7 9,12" fill="none" stroke="${s}" stroke-width="2.8" stroke-linecap="round"/>`;
+add('bag','b-box', handle('#E2649A')+`<rect x="-16" y="9" width="32" height="25" rx="7" fill="#FF8FB8" stroke="#E2649A" stroke-width="2"/>
+  <path d="M-16,17 Q0,27 16,17 L16,14 Q16,9 11,9 L-11,9 Q-16,9 -16,14Z" fill="#FFC6DA" stroke="#E2649A" stroke-width="1.4"/>${heartAt(0,22,4.2,'#FFFFFF','#E2649A')}`);
+add('bag','b-heart', handle('#C23A5E')+heartAt(0,22,13,'#F05A7E','#C23A5E')+ball(-5,16,2.4,'#fff')+starAt(0,22,3.5,'#FFE27A'));
+add('bag','b-round', `<path d="M-11,22 Q-14,-8 0,-8 Q14,-8 11,22" fill="none" stroke="#D99A0B" stroke-width="1.8" stroke-dasharray="2 2"/>
+  <circle cx="0" cy="25" r="14" fill="#FFD23F" stroke="#D99A0B" stroke-width="2"/><circle cx="0" cy="25" r="9" fill="none" stroke="#FFE88A" stroke-width="2"/>${gemAt(0,25,4,'#FF7AB6')}`);
+add('bag','b-basket', `<path d="M-14,14 Q-14,-10 0,-10 Q14,-10 14,14" fill="none" stroke="#B5803F" stroke-width="3" stroke-linecap="round"/>
+  <path d="M-18,12 L18,12 L13,36 L-13,36Z" fill="#E9B872" stroke="#B5803F" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M-16,20 L16,20 M-14,28 L14,28 M-6,12 L-5,36 M6,12 L5,36" stroke="#B5803F" stroke-width="1.3"/>
+  ${flowerAt(-9,11,7,'#7CC8FF','#FFE066')}${flowerAt(2,9,7,'#FF9CC6','#FFE066')}${flowerAt(11,12,6,'#FFFFFF','#FFE066')}`);
+add('bag','b-star', handle('#8A6CD0')+`<path transform="translate(0,24)" d="${starPath(17,9)}" fill="#B79CF0" stroke="#8A6CD0" stroke-width="2" stroke-linejoin="round"/>${ball(0,24,3,'#FFE14D')}`);
+
+// ほし（どこにでも貼れる）— 形がちがう6こ
+const glint=(x,y)=>`<ellipse cx="${x}" cy="${y}" rx="3" ry="1.6" fill="#fff" opacity=".8" transform="rotate(-30 ${x} ${y})"/>`;
+add('star','st-5', starAt(0,0,14,'#FFD93B','#E5A600')+glint(-4,-4));
+add('star','st-sparkle', `<path d="${starPath(15,4,4)}" fill="#FF8FC2" stroke="#D9467F" stroke-width="1.6" stroke-linejoin="round"/>`+`<path transform="translate(10,-10)" d="${starPath(5,1.5,4)}" fill="#FF8FC2"/>`);
+add('star','st-6', `<path d="${starPath(14,8,6)}" fill="#7CC8FF" stroke="#3E9BD6" stroke-width="1.8" stroke-linejoin="round"/>`+glint(-4,-4));
+add('star','st-face', `<path d="${starPath(14,7)}" fill="#B794F6" stroke="#B794F6" stroke-width="6" stroke-linejoin="round"/>
+  ${ball(-4,-1,1.6,'#3B2333')}${ball(4,-1,1.6,'#3B2333')}<path d="M-3,3 Q0,6 3,3" stroke="#3B2333" stroke-width="1.4" fill="none" stroke-linecap="round"/>${ball(-7,3,2,'#FF8FC2')}${ball(7,3,2,'#FF8FC2')}`);
+add('star','st-shoot', `<path d="M-2,2 L-24,16 M0,6 L-20,22 M3,7 L-14,26" stroke-linecap="round" stroke-width="3" stroke="#7ADBA8" fill="none"/>
+  <path transform="translate(4,-2)" d="${starPath(11)}" fill="#7ADBA8" stroke="#3FAE8C" stroke-width="1.6" stroke-linejoin="round"/>`);
+add('star','st-burst', `<path d="${starPath(14,9,8)}" fill="#FFA552" stroke="#E07A1F" stroke-width="1.6" stroke-linejoin="round"/>${ball(0,0,5,'#FFE14D')}`);
+
+// ハート（どこにでも貼れる）— 形がちがう6こ
+add('heart','ht-plain',  heartAt(0,0,12,'#FF5A7A','#C2304E')+glint(-6,-5));
+add('heart','ht-double', heartAt(-5,2,9,'#FF9CC6','#E0558F')+heartAt(7,-3,8,'#FFC6DA','#E0558F'));
+add('heart','ht-wing',   `<path d="M-8,-2 Q-24,-14 -26,-2 Q-20,0 -24,6 Q-14,6 -8,4Z M8,-2 Q24,-14 26,-2 Q20,0 24,6 Q14,6 8,4Z" fill="#FFFFFF" stroke="#B794F6" stroke-width="1.5" stroke-linejoin="round"/>`+heartAt(0,0,9,'#B794F6','#7B5CC9'));
+add('heart','ht-outline',`<path d="${heartPath(12)}" fill="none" stroke="#7CC8FF" stroke-width="4" stroke-linejoin="round"/>`+starAt(0,0,4,'#7CC8FF'));
+add('heart','ht-balloon',`<path d="M0,12 Q-4,20 2,26 Q6,32 0,38" stroke="#E07A1F" stroke-width="1.4" fill="none"/>`+heartAt(0,0,12,'#FFA552','#E07A1F')+glint(-6,-5));
+add('heart','ht-ribbon', heartAt(0,2,12,'#FFD93B','#E5A600')+`<path d="M0,-6 L-9,-12 L-9,0Z M0,-6 L9,-12 L9,0Z" fill="#FF7AB6" stroke="#D9467F" stroke-width="1.2" stroke-linejoin="round"/>${ball(0,-6,2.2,'#D9467F')}`);
+
+// 子犬（どこにでも置ける）。横向き（右向き）。原点＝体のまんなか、1.6倍で描く
+const eye=(x,y)=>`${ball(x,y,2.2,'#2B1B22')}${ball(x+.8,y-.8,.75,'#FFFFFF')}`;
+const dog=svg=>`<g transform="scale(1.6)">${svg}</g>`;
+const leg=(x,y1,y2,w,fill,stroke)=>`<rect x="${f(x-w/2)}" y="${y1}" width="${w}" height="${y2-y1}" rx="${f(w/2)}" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`;
+
+// 白い犬・赤い消防士のヘルメット
+add('dog','dog-fire', dog(`
+  ${leg(-9,10,25,5,'#E6DEE5','#C9BFC8')}${leg(9,10,25,5,'#E6DEE5','#C9BFC8')}
+  <path d="M-15,4 Q-25,-2 -23,-12" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+  <path d="M-15,4 Q-25,-2 -23,-12" fill="none" stroke="#C9BFC8" stroke-width="1" stroke-linecap="round" opacity=".6"/>
+  <ellipse cx="-1" cy="7" rx="16" ry="9.5" fill="#FFFFFF" stroke="#C9BFC8" stroke-width="1.2"/>
+  ${leg(-12,11,26,5.4,'#FFFFFF','#C9BFC8')}${leg(5,11,26,5.4,'#FFFFFF','#C9BFC8')}
+  <ellipse cx="-11.5" cy="26" rx="4" ry="2" fill="#FFFFFF" stroke="#C9BFC8" stroke-width="1"/><ellipse cx="6.5" cy="26" rx="4" ry="2" fill="#FFFFFF" stroke="#C9BFC8" stroke-width="1"/>
+  <circle cx="14" cy="-6" r="9.5" fill="#FFFFFF" stroke="#C9BFC8" stroke-width="1.2"/>
+  <ellipse cx="22" cy="-2.5" rx="6.5" ry="4.6" fill="#FFFFFF" stroke="#C9BFC8" stroke-width="1.2"/>
+  ${ball(28,-4,2.2,'#2B1B22')}
+  <path d="M22,0.5 Q25,2.5 28,0.5" fill="none" stroke="#6B4A58" stroke-width="1" stroke-linecap="round"/><path d="M24,1.5 Q25.5,5.5 27,1.5Z" fill="#FF7FA0"/>
+  <ellipse cx="9" cy="-3" rx="3.6" ry="7" fill="#EDE6EC" stroke="#C9BFC8" stroke-width="1" transform="rotate(14 9 -3)"/>
+  ${eye(17,-8)}
+  <path d="M5,-11 Q5,-23 15,-23 Q24,-23 24,-12Z" fill="#E8304F" stroke="#B51E3A" stroke-width="1.1" stroke-linejoin="round"/>
+  <path d="M-3,-8 Q12,-15 27,-11 L26.5,-9 Q12,-12 -2,-6Z" fill="#C8243F"/>
+  <path d="M19,-21 L24,-19 L23,-14 Q20,-14 19,-16Z" fill="#FFD23F" stroke="#D99A0B" stroke-width=".7"/>`));
+
+// 茶色のチワワ・鼻と口は薄茶色・ピンクのヘルメット
+add('dog','dog-chihuahua', dog(`
+  ${leg(-6,7,22,3.4,'#8A5025','#6E3E1B')}${leg(8,7,22,3.4,'#8A5025','#6E3E1B')}
+  <path d="M-10,2 Q-20,-2 -16,-11 Q-14,-6 -11,-4" fill="none" stroke="#A0612F" stroke-width="2.6" stroke-linecap="round"/>
+  <ellipse cx="0" cy="5" rx="11.5" ry="7" fill="#A0612F" stroke="#7A4520" stroke-width="1.1"/>
+  <ellipse cx="6" cy="8" rx="5" ry="4" fill="#E8C49A"/>
+  ${leg(-8,8,23,3.6,'#A0612F','#7A4520')}${leg(5,8,23,3.6,'#E8C49A','#7A4520')}
+  <ellipse cx="-7.5" cy="23" rx="2.8" ry="1.6" fill="#E8C49A" stroke="#7A4520" stroke-width=".8"/><ellipse cx="5.5" cy="23" rx="2.8" ry="1.6" fill="#E8C49A" stroke="#7A4520" stroke-width=".8"/>
+  <path d="M8,-10 L4,-27 L15,-14Z" fill="#A0612F" stroke="#7A4520" stroke-width="1.1" stroke-linejoin="round"/>
+  <path d="M8.5,-11.5 L6,-23 L13,-14Z" fill="#F2B8B0"/>
+  <circle cx="13" cy="-6" r="9.5" fill="#A0612F" stroke="#7A4520" stroke-width="1.1"/>
+  <ellipse cx="20.5" cy="-3" rx="5" ry="3.8" fill="#E8C49A" stroke="#7A4520" stroke-width="1"/>
+  ${ball(25,-4,1.8,'#5A3420')}
+  <path d="M20,0 Q22.5,1.8 25,0" fill="none" stroke="#7A4520" stroke-width=".9" stroke-linecap="round"/><path d="M21.5,0.8 Q23,4 24.5,0.8Z" fill="#FF7FA0"/>
+  ${eye(15.5,-8)}${ball(17.5,-8.5,.6,'#FFFFFF')}
+  <path d="M5,-10 Q5,-21 14,-21 Q22,-21 22,-10Z" fill="#FF8FC2" stroke="#D9467F" stroke-width="1.1" stroke-linejoin="round"/>
+  <path d="M9,-20 Q8,-15 8,-10.5 M14,-21 L14,-10.5" stroke="#FFFFFF" stroke-width="1.4" opacity=".8"/>
+  <path d="M3,-10 Q13,-12.5 24,-10 L23.5,-8.3 L3.5,-8.3Z" fill="#D9467F"/>
+  ${heartAt(18.5,-15.5,2.2,'#FFFFFF')}`));
+
+// 太った薄茶色の土佐犬・黄色いヘルメット
+add('dog','dog-tosa', dog(`
+  ${leg(-11,12,26,7,'#C8955C','#A87436')}${leg(10,12,26,7,'#C8955C','#A87436')}
+  <path d="M-19,4 Q-26,2 -26,-6" fill="none" stroke="#DDAE72" stroke-width="4" stroke-linecap="round"/>
+  <ellipse cx="-2" cy="8" rx="20" ry="12.5" fill="#DDAE72" stroke="#B5803F" stroke-width="1.3"/>
+  <ellipse cx="2" cy="13" rx="13" ry="6" fill="#EBC896"/>
+  <path d="M-14,3 Q-10,6 -6,3 M-12,9 Q-8,12 -4,9" fill="none" stroke="#B5803F" stroke-width=".9" opacity=".6"/>
+  ${leg(-14,14,27,7.5,'#DDAE72','#B5803F')}${leg(6,14,27,7.5,'#DDAE72','#B5803F')}
+  <ellipse cx="-13.5" cy="27" rx="5" ry="2.3" fill="#DDAE72" stroke="#B5803F" stroke-width="1"/><ellipse cx="6.5" cy="27" rx="5" ry="2.3" fill="#DDAE72" stroke="#B5803F" stroke-width="1"/>
+  <circle cx="16" cy="-5" r="11" fill="#DDAE72" stroke="#B5803F" stroke-width="1.3"/>
+  <path d="M19,-1 Q30,-3 30,3 Q30,10 22,9 Q18,8 17,4Z" fill="#C8955C" stroke="#A87436" stroke-width="1.1"/>
+  ${ball(30,-1.5,2.5,'#2B1B22')}
+  <path d="M22,5 Q26,6.5 29,4.5" fill="none" stroke="#6B4520" stroke-width="1" stroke-linecap="round"/><path d="M24,5.6 Q25.5,9.4 27,5.4Z" fill="#FF7FA0"/>
+  <path d="M8,-9 Q4,-8 5,-2 Q8,-4 10,-6Z" fill="#B5803F" stroke="#8F5F2A" stroke-width=".9"/>
+  <path d="M14,-12 Q19,-14 23,-11" fill="none" stroke="#B5803F" stroke-width=".9" stroke-linecap="round"/>
+  ${eye(19.5,-7)}
+  <path d="M5,-11 Q5,-24 16,-24 Q27,-24 27,-11Z" fill="#FFD93B" stroke="#E5A600" stroke-width="1.1" stroke-linejoin="round"/>
+  <path d="M14,-23.8 L14,-11.5 L18,-11.5 L18,-23.8" fill="#FFE88A" stroke="#E5A600" stroke-width=".8"/>
+  <path d="M2,-11.5 Q16,-14 30,-11.5 Q31,-9 27,-9 L5,-9 Q1,-9 2,-11.5Z" fill="#F5B800"/>`));
+
+// ---- 質感の仕上げ（布のひだとつや・金と銀・真珠・宝石のカット面） ----
+(function(){
+  const over=d=>`<path d="${d}" fill="url(#pleat)"/><path d="${d}" fill="url(#sheen)"/>`;
+  BY_CAT.dress.forEach(id=>{ const it=ITEMS[id];
+    it.main=it.main.replace(/<path d="([^"]+)" fill="#[0-9A-Fa-f]{6}" stroke="#[0-9A-Fa-f]{6}" stroke-width="(?:2|1\.8)"[^>]*\/>/g, m=>m+over(m.match(/d="([^"]+)"/)[1]));
+    it.main=it.main.replace(/<ellipse ([^>]*?)fill="(#[0-9A-Fa-f]{6})" stroke="#[0-9A-Fa-f]{6}" stroke-width="1\.8"([^>]*)\/>/g, (m,a,c,b)=>m+`<ellipse ${a}fill="url(#sheen)"${b}/>`);
+    it.top=it.top.replace(/<ellipse ([^>]*?)fill="(#[0-9A-Fa-f]{6})"([^>]*)\/>/g, (m,a,c,b)=>m+`<ellipse ${a}fill="url(#sheenR)"${b.replace(/stroke="[^"]*"/,'')}/>`);
+  });
+  Object.values(ITEMS).forEach(it=>{
+    ['main','top','icon'].forEach(k=>{ if(!it[k]) return;
+      it[k]=it[k].replace(/fill="#(FFD23F|F5B82E|FFD93B|F5B800)"/g,'fill="url(#goldG)"')
+                 .replace(/fill="#(E8ECF4|E6EAF2|C9D2E2)"/g,'fill="url(#silverG)"');
+      if(it.id==='n-pearl'||it.id==='e-pearl') it[k]=it[k].replace(/fill="#FFFFFF"/g,'fill="url(#pearlG)"');
+    });
+  });
+})();
+
+const CATS=[
+  {key:'dress',label:'ドレス',slot:'dress'},
+  {key:'crown',label:'かんむり',slot:'crown'},
+  {key:'necklace',label:'ネックレス',slot:'necklace'},
+  {key:'earrings',label:'イヤリング',slot:'earrings'},
+  {key:'ring',label:'ゆびわ',slot:'ring'},
+  {key:'shoes',label:'くつ',slot:'shoes'},
+  {key:'bag',label:'かばん',slot:'bag'},
+  {key:'star',label:'ほし',slot:'sticker'},
+  {key:'heart',label:'ハート',slot:'sticker'},
+  {key:'dog',label:'こいぬ',slot:'sticker'},
+];
+const SLOT_OF = {}; CATS.forEach(c=>SLOT_OF[c.key]=c.slot);
+const SLOTS={dress:[100,120],shoes:[100,395],necklace:[100,121],earrings:[100,82],crown:[100,35],bag:[158,230],ring:[42,230]};
+
+/* ---------- お姫様 ---------- */
+const P=[
+  {name:'ももひめ',    skin:'#FDE3D2', hair:'#F5C24A', style:'long', eyeKey:0, brow:'#C99A2E', shade:'#E8B49A'},
+  {name:'そらひめ',    skin:'#FDE3D2', hair:'#8FD3F5', style:'buns', eyeKey:1, brow:'#5CA8CF', shade:'#E8B49A'},
+  {name:'ひまわりひめ', skin:'#FDE3D2', hair:'#FF8FC0', style:'pony', eyeKey:2, brow:'#D9629A', shade:'#E8B49A'},
+];
+// ---- 肌と髪のグラデーション（お姫様ごと） ----
+const LOOK=[
+  {skin:['#FFE6D4','#FAD0B2','#E3A27E'], hair:['#FFE899','#F5C24A','#C98D1E'], strand:'#B07A14'},
+  {skin:['#FFE6D4','#FAD0B2','#E3A27E'], hair:['#D8F3FF','#8FD3F5','#4F9FCB'], strand:'#3F86B0'},
+  {skin:['#FFE6D4','#FAD0B2','#E3A27E'], hair:['#FFD0E4','#FF8FC0','#D85590'], strand:'#B83E77'},
+];
+P.forEach((p,i)=>{ p.skinColor=p.skin; p.skin=`url(#skin${i})`; p.hairColor=p.hair; p.hair=`url(#hair${i})`; p.strand=LOOK[i].strand; });
+function buildLookDefs(){
+  const defs=document.querySelector('#fxdefs defs'); let h='';
+  LOOK.forEach((L,i)=>{
+    h+=`<radialGradient id="skin${i}" cx="38%" cy="30%" r="85%"><stop offset="0" stop-color="${L.skin[0]}"/><stop offset=".55" stop-color="${L.skin[1]}"/><stop offset="1" stop-color="${L.skin[2]}"/></radialGradient>`;
+    h+=`<linearGradient id="hair${i}" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="${L.hair[0]}"/><stop offset=".45" stop-color="${L.hair[1]}"/><stop offset="1" stop-color="${L.hair[2]}"/></linearGradient>`;
+  });
+  defs.insertAdjacentHTML('beforeend',h);
+}
+// 右側は左側の座標を左右反転して作る
+const mir=d=>d.replace(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g,(m,x,y)=>`${f(200-x)},${y}`);
+const LEG='M80,200 L97,200 Q98,258 95,300 Q98,332 94,362 L93,389 L85,389 L84,362 Q80,332 83,300 Q79,258 80,200Z';
+const ARM='M70,129 Q59,152 53,178 Q46,200 40,219 L49,225 Q56,204 64,185 Q73,161 84,139Z';
+const HAND=(x,s)=>`<ellipse cx="${x}" cy="231" rx="6.2" ry="8.2" transform="rotate(${18*s} ${x} 231)"/><ellipse cx="${x+5.5*s}" cy="225" rx="2.4" ry="4" transform="rotate(${-30*s} ${x+5.5*s} 225)"/>`;
+const STRANDS={
+  long:'M70,92 Q61,150 69,202 M84,104 Q80,160 86,208 M116,104 Q120,160 114,208 M130,92 Q139,150 131,202',
+  buns:'M52,36 Q62,26 74,36 M126,36 Q138,26 148,36 M58,92 Q60,108 70,116 M142,92 Q140,108 130,116',
+  pony:'M150,60 Q160,100 150,152 M140,56 Q150,96 146,130 M60,92 Q62,106 68,112',
+};
+const BANGS='M100,30 Q90,40 82,50 M100,30 Q110,40 118,50 M100,30 Q99,42 100,53 M76,40 Q68,52 64,68 M124,40 Q132,52 136,68';
+
+function hairBack(p){
+  if(p.style==='long') return `<path d="M56,74 Q48,150 58,206 Q100,220 142,206 Q152,150 144,74 Q140,24 100,24 Q60,24 56,74Z" fill="${p.hair}"/>`;
+  if(p.style==='pony') return `<path d="M124,34 Q168,30 166,84 Q164,130 150,168 Q142,150 146,120 Q150,80 128,52Z" fill="${p.hair}"/>
+    <path d="M150,60 Q160,100 150,150" fill="none" stroke="#FFFFFF" stroke-width="2" opacity=".45" stroke-linecap="round"/>
+    <path d="M57,76 Q55,108 66,114 L134,114 Q145,108 143,76 Q140,26 100,26 Q60,26 57,76Z" fill="${p.hair}"/>`;
+  if(p.style==='buns') return `<circle cx="62" cy="40" r="18" fill="${p.hair}"/><circle cx="138" cy="40" r="18" fill="${p.hair}"/><path d="M57,76 Q55,114 70,120 L130,120 Q145,114 143,76 Q140,26 100,26 Q60,26 57,76Z" fill="${p.hair}"/>`;
+  let s=`<circle cx="100" cy="68" r="48" fill="${p.hair}"/>`;
+  for(let k=0;k<12;k++){ const a=k*Math.PI/6; s+=ball(100+46*Math.cos(a),70+44*Math.sin(a),17,p.hair); }
+  return s;
+}
+function hairFront(p){
+  if(p.style==='curly'){ let s=''; for(let x=66;x<=134;x+=11) s+=ball(x,42+((x-100)/34)**2*12,10,p.hair); return s; }
+  let s=`<path d="M61,76 Q58,30 100,29 Q142,30 139,76 Q134,54 118,50 Q110,62 100,53 Q90,62 82,50 Q66,54 61,76Z" fill="${p.hair}"/>`;
+  if(p.style==='pony') s+=`${ball(130,36,7.5,'#FFE14D','#E5A600')}${ball(127,33,2,'#FFFFFF')}`;
+  if(p.style==='long') s+=`<path d="M62,70 Q52,118 60,156 Q68,148 70,118 Q70,92 66,72Z" fill="${p.hair}"/><path d="M138,70 Q148,118 140,156 Q132,148 130,118 Q130,92 134,72Z" fill="${p.hair}"/>`;
+  return s;
+}
+// 立体の顔（ひとみの色・まつげ・ほお紅・つやのある口）
+function face(p){
+  const eyeOne=(cx,flip)=>{ const cy=75;
+    return `<ellipse cx="${cx}" cy="${cy}" rx="5.6" ry="7.2" fill="#2B1B22"/>
+    <ellipse cx="${cx}" cy="${cy+1.4}" rx="4.2" ry="5.3" fill="url(#iris${p.eyeKey})"/>
+    <ellipse cx="${cx}" cy="${cy+2}" rx="2.1" ry="2.7" fill="#1A0F14"/>
+    <ellipse cx="${cx+1.9*flip}" cy="${cy-2.6}" rx="2" ry="2.4" fill="#FFFFFF"/>
+    <circle cx="${cx-1.9*flip}" cy="${cy+3.4}" r="1" fill="#FFFFFF" opacity=".85"/>
+    <path d="M${cx-6.2},${cy-4.6} Q${cx},${cy-10.5} ${cx+6.2},${cy-4.6}" fill="none" stroke="#2B1B22" stroke-width="2" stroke-linecap="round"/>
+    <path d="M${cx+5.8*flip},${cy-5} L${cx+9*flip},${cy-7.5}" stroke="#2B1B22" stroke-width="1.6" stroke-linecap="round"/>`; };
+  return `<g class="eyes">${eyeOne(86,-1)}${eyeOne(114,1)}</g>
+  <path d="M80,63 Q86,60 91,62 M109,62 Q114,60 120,63" fill="none" stroke="${p.brow}" stroke-width="1.6" stroke-linecap="round" opacity=".8"/>
+  <ellipse cx="76" cy="87" rx="8" ry="5" fill="url(#blush)"/><ellipse cx="124" cy="87" rx="8" ry="5" fill="url(#blush)"/>
+  <path d="M98,82.5 Q100,84 102,82.5" fill="none" stroke="${p.shade}" stroke-width="1.3" stroke-linecap="round"/>
+  <path d="M93,88.5 Q100,97 107,88.5 Q100,91.5 93,88.5Z" fill="#E2577E" stroke="#B83A62" stroke-width=".8" stroke-linejoin="round"/>
+  <ellipse cx="100" cy="92.6" rx="2.6" ry="1" fill="#FF9DB8"/>`;
+}
+const hairShine=p=>p.style==='curly'?'':`<path d="M70,50 Q100,33 130,50" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" opacity=".38"/>
+  <path d="M80,44 Q88,39 95,39 M106,39 Q114,39 121,45" fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" opacity=".5"/>`;
+const FX_BIG={dress:1,shoes:1,bag:1};
+function princessSVG(i){
+  const p=P[i], s=state.p[i];
+  const slot=(name,part)=>{ const id=s[name]; if(!id||!ITEMS[id]) return ''; const [x,y]=SLOTS[name];
+    return `<g class="worn" data-slot="${name}" transform="translate(${x},${y})"><g filter="url(#${FX_BIG[name]?'puff':'puffS'})">${ITEMS[id][part||'main']}</g></g>`; };
+  const stickers=(s.stickers||[]).map((k,j)=>ITEMS[k.id]?`<g class="worn" data-stk="${j}" transform="translate(${f(k.x)},${f(k.y)})"><g class="${ITEMS[k.id].cat==='dog'?'pup':'stk'}"><g filter="url(#puffS)">${ITEMS[k.id].main}</g></g></g>`:'').join('');
+  return `<svg viewBox="0 0 200 410" data-i="${i}" role="img" aria-label="${p.name}">
+  <ellipse cx="100" cy="400" rx="44" ry="8" fill="url(#ground)"/>
+  <g filter="url(#puff)">${hairBack(p)}</g><path d="${STRANDS[p.style]||''}" fill="none" stroke="${p.strand}" stroke-width="1.4" stroke-linecap="round" opacity=".45"/>
+  <g filter="url(#puff)"><path d="${LEG}" fill="${p.skin}"/><path d="${mir(LEG)}" fill="${p.skin}"/>
+    <ellipse cx="88" cy="393" rx="9" ry="5.8" fill="${p.skin}"/><ellipse cx="112" cy="393" rx="9" ry="5.8" fill="${p.skin}"/></g>
+  <path d="M85,300 Q89,304 93,300 M107,300 Q111,304 115,300" fill="none" stroke="${p.shade}" stroke-width="1.2" stroke-linecap="round" opacity=".5"/>
+  <rect x="92" y="98" width="16" height="30" rx="4" fill="${p.skin}" filter="url(#puffS)"/>
+  <ellipse cx="100" cy="107" rx="8" ry="4.5" fill="#5A2A3A" opacity=".16"/>
+  <path d="M74,126 Q100,118 126,126 Q124,166 119,182 Q122,196 122,206 Q100,212 78,206 Q78,196 81,182 Q76,166 74,126Z" fill="${p.skin}" filter="url(#puff)"/>
+  <g filter="url(#puffS)">
+    <path d="M76,146 Q100,153 124,146 Q122,170 119,182 Q122,196 122,206 Q100,212 78,206 Q78,196 81,182 Q78,170 76,146Z" fill="#FFFFFF" stroke="#F4C6D6" stroke-width="1.5"/>
+    <path d="M76,146 Q100,153 124,146 Q122,170 119,182 Q122,196 122,206 Q100,212 78,206 Q78,196 81,182 Q78,170 76,146Z" fill="url(#sheen)"/>
+    <path d="M78,147 Q100,154 122,147" fill="none" stroke="#FFB3CF" stroke-width="3" stroke-dasharray=".1 5" stroke-linecap="round"/>
+    <line x1="85" y1="127" x2="85" y2="148" stroke="#FFFFFF" stroke-width="3"/><line x1="115" y1="127" x2="115" y2="148" stroke="#FFFFFF" stroke-width="3"/>
+    <path d="M77,200 Q100,206 123,200 L124,236 Q112,241 102,236 L100,226 L98,236 Q88,241 76,236Z" fill="#FFFFFF" stroke="#F4C6D6" stroke-width="1.5"/>
+    ${heartAt(100,165,3.4,'#FFB3CF')}
+  </g>
+  ${slot('shoes')}
+  ${slot('dress')}
+  <g transform="translate(77,134)"><g class="arm-l"><g transform="translate(-77,-134)">
+    <g filter="url(#puff)" fill="${p.skin}"><path d="${ARM}"/><circle cx="77" cy="134" r="7"/>${HAND(42,1)}</g>${slot('ring')}
+  </g></g></g>
+  <g transform="translate(123,134)"><g class="arm-r"><g transform="translate(-123,-134)">
+    <g filter="url(#puff)" fill="${p.skin}"><path d="${mir(ARM)}"/><circle cx="123" cy="134" r="7"/>${HAND(158,-1)}</g>${slot('bag')}
+  </g></g></g>
+  ${slot('dress','top')}
+  ${slot('necklace')}
+  <circle cx="100" cy="70" r="38" fill="${p.skin}" filter="url(#puff)"/>
+  ${face(p)}
+  <g filter="url(#puff)">${hairFront(p)}</g><path d="${BANGS}" fill="none" stroke="${p.strand}" stroke-width="1.2" stroke-linecap="round" opacity=".4"/>${hairShine(p)}
+  ${slot('earrings')}
+  ${slot('crown')}
+  ${stickers}
+</svg>`;
+}
+
+/* ---------- 状態 ---------- */
+const KEY='princess-dressup-v1';
+const blank=()=>({p:P.map(()=>({stickers:[]})),free:[]});
+let state=blank(), playing=false, musicOn=true;
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){} }
+function load(){ try{ const s=JSON.parse(localStorage.getItem(KEY)||'null'); if(s&&Array.isArray(s.p)&&s.p.length===3) state=s; }catch(e){} }
+
+/* ---------- 描画 ---------- */
+const $=id=>document.getElementById(id);
+const stage=$('stage'), freeEl=$('free');
+const BB={};
+function measureAll(){
+  const m=$('measure');
+  Object.values(ITEMS).forEach(it=>{
+    m.innerHTML=it.icon||(it.main+it.top);
+    try{ const b=m.getBBox(); BB[it.id]={x:b.x,y:b.y,w:b.width||20,h:b.height||20}; }catch(e){ BB[it.id]={x:-20,y:-20,w:40,h:40}; }
+  });
+  m.innerHTML='';
+}
+function itemSVG(id,pad){ const b=BB[id], it=ITEMS[id]; pad=pad==null?2:pad; const fx=Math.max(b.w,b.h)>80?'puff':'puffS';
+  if(it.icon) return `<svg viewBox="${f(b.x-pad)} ${f(b.y-pad)} ${f(b.w+pad*2)} ${f(b.h+pad*2)}"><g filter="url(#${fx})">${it.icon}</g></svg>`;
+  return `<svg viewBox="${f(b.x-pad)} ${f(b.y-pad)} ${f(b.w+pad*2)} ${f(b.h+pad*2)}"><g filter="url(#${fx})">${it.main}${it.top}</g></svg>`; }
+
+const figs=[];
+function buildStage(){
+  P.forEach((p,i)=>{
+    const d=document.createElement('div'); d.className='princess p'+i;
+    d.innerHTML=`<div class="fig"><div class="dancer"><div class="spinner"></div></div></div>`;
+    stage.insertBefore(d,freeEl);
+    figs.push({wrap:d,host:d.querySelector('.spinner')});
+  });
+  const tw=$('twinkles'), cols=['#FFE14D','#FF8FC2','#7CC8FF','#B794F6','#FFFFFF'];
+  for(let k=0;k<18;k++){ const s=document.createElement('span');
+    s.style.left=(4+Math.random()*92)+'%'; s.style.top=(30+Math.random()*65)+'%'; s.style.animationDelay=(-Math.random()*3)+'s';
+    s.innerHTML=`<svg viewBox="-15 -15 30 30">${starAt(0,0,14,cols[k%cols.length])}</svg>`; tw.appendChild(s); }
+}
+function renderPrincess(i){ figs[i].host.innerHTML=princessSVG(i); }
+function svgOf(i){ return figs[i].host.querySelector('svg'); }
+function scaleOf(i){ const m=svgOf(i)&&svgOf(i).getScreenCTM(); return m?Math.abs(m.a)||1:1; }
+function visScale(){ const i=view==='all'?0:view; return scaleOf(i); }
+let view=0;
+function headSVG(p,dx){ return `<g transform="translate(${dx||0},0)"><g filter="url(#puff)">${hairBack(p)}</g><circle cx="100" cy="70" r="38" fill="${p.skin}" filter="url(#puff)"/>
+  ${face(p).replace('class="eyes"','')}<g filter="url(#puff)">${hairFront(p)}</g>${hairShine(p)}</g>`; }
+function renderPTabs(){
+  const one=i=>`<svg viewBox="36 6 128 124">${headSVG(P[i])}</svg>`;
+  const all=`<svg viewBox="-30 6 260 124"><g transform="translate(100,68) scale(.62) translate(-100,-68)">${headSVG(P[0],-120)}${headSVG(P[2],120)}${headSVG(P[1],0)}</g></svg>`;
+  const tabs=[0,1,2,'all'];
+  $('ptabs').innerHTML=tabs.map(v=>`<button class="ptab" type="button" role="tab" data-v="${v}" aria-selected="${v===view}" aria-label="${v==='all'?'みんな':P[v].name}">${v==='all'?all:one(v)}</button>`).join('');
+}
+function setView(v){ view=v; figs.forEach((fg,i)=>{ fg.wrap.hidden=!(v==='all'||v===i); }); renderPTabs(); requestAnimationFrame(renderFree); }
+function renderFree(){
+  const sc=visScale();
+  freeEl.innerHTML='';
+  state.free.forEach((k,j)=>{ if(!ITEMS[k.id]) return;
+    const bb=BB[k.id], sz=Math.max(34,Math.max(bb.w,bb.h)*1.1)*sc, d=document.createElement('div'); d.className='fs'+(ITEMS[k.id].cat==='dog'?' pup':''); d.dataset.j=j;
+    d.style.width=sz+'px'; d.style.height=sz+'px';
+    d.style.left=`calc(${k.fx*100}% - ${sz/2}px)`; d.style.top=`calc(${k.fy*100}% - ${sz/2}px)`;
+    d.innerHTML=itemSVG(k.id,2); freeEl.appendChild(d); });
+}
+function renderAll(){ P.forEach((_,i)=>renderPrincess(i)); renderFree(); }
+const GROUP={dress:'g1',crown:'g2',necklace:'g2',earrings:'g2',ring:'g2',shoes:'g3',bag:'g3',star:'g4',heart:'g4',dog:'g5'};
+function renderItems(){
+  $('items').innerHTML=CATS.map(c=>BY_CAT[c.key].map(id=>`<div class="tile ${GROUP[c.key]}" data-id="${id}" role="button" aria-label="${c.label}">${itemSVG(id,3)}</div>`).join('')).join('');
+  fitTiles();
+}
+// すべてのパーツがスクロールなしで1画面に入る一番大きいマスの大きさを選ぶ
+function fitTiles(){
+  const el=$('items'), n=el.children.length; if(!n) return;
+  const W=el.clientWidth, H=el.clientHeight; if(!W||!H) return;
+  let best={s:20,c:8,g:4};
+  for(let c=1;c<=n;c++){ const rows=Math.ceil(n/c), g=Math.max(3,Math.min(8,W/c*.08));
+    const s=Math.min((W-g*(c-1))/c,(H-g*(rows-1))/rows); if(s>best.s) best={s,c,g}; }
+  const s=Math.floor(Math.min(best.s,110));
+  el.style.setProperty('--tile',s+'px'); el.style.setProperty('--cols',best.c); el.style.setProperty('--gap',Math.floor(best.g)+'px');
+}
+
+/* ---------- 音 ---------- */
+let ac=null; const voices=[];
+function audio(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ ac=null; } }
+  if(ac&&ac.state==='suspended') ac.resume(); return ac; }
+function tone(freq,t,dur,vol,type){ const a=audio(); if(!a) return;
+  const o=a.createOscillator(), g=a.createGain(); o.type=type||'triangle'; o.frequency.value=freq;
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.02); g.gain.exponentialRampToValueAtTime(.0008,t+dur);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+dur+.05);
+  voices.push(o); o.onended=()=>{ const k=voices.indexOf(o); if(k>=0) voices.splice(k,1); }; }
+function chime(){ const a=audio(); if(!a) return; const t=a.currentTime; tone(1318.5,t,.18,.12,'sine'); tone(1568,t+.08,.28,.12,'sine'); }
+function puff(){ const a=audio(); if(!a) return; const t=a.currentTime; tone(523,t,.12,.08,'sine'); tone(392,t+.06,.16,.07,'sine'); }
+// 音名 → 周波数（例 'F#4'）
+const SEMI={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+function hz(n){ const m=n.match(/^([A-G])(#|b)?(\d)$/); if(!m) return 0;
+  const midi=12*(+m[3]+1)+SEMI[m[1]]+(m[2]==='#'?1:m[2]==='b'?-1:0); return 440*Math.pow(2,(midi-69)/12); }
+const parseMel=str=>str.trim().split(/\s+/).map(t=>{ const [n,b]=t.split(':'); return [n==='R'?0:hz(n), b?+b:1]; });
+// 童謡「ちょうちょう」（ハ長調・4拍子）。メロディーは古い外国の民謡で著作権は切れている
+const SONGS=[
+  { beat:.36, meter:4,
+    mel:parseMel('G4 E4 E4:2 F4 D4 D4:2 C4 D4 E4 F4 G4 G4 G4:2 '+
+                 'G4 E4 E4:2 F4 D4 D4:2 C4 E4 G4 G4 C4:4 '+
+                 'D4 D4 D4 D4 D4 E4 F4:2 E4 E4 E4 E4 E4 F4 G4:2 '+
+                 'G4 E4 E4:2 F4 D4 D4:2 C4 E4 G4 G4 C4:4'),
+    chords:'C G C C C G C C G G C C C G C C'.split(' ') }
+];
+const CHORD={C:['C3','E3','G3'],G7:['G2','B3','F4'],F:['F2','A3','C4'],G:['G2','B3','D4'],D:['D3','F#3','A3'],A:['A2','C#4','E4'],A7:['A2','C#4','G4']};
+const BEAT=.34; let songTimer=null, songIdx=0;
+function scheduleSong(){ const a=audio(); if(!a) return; const S=SONGS[songIdx%SONGS.length]; songIdx++;
+  const B=S.beat, t0=a.currentTime+.08; let t=t0;
+  S.mel.forEach(([fq,b])=>{ if(fq){ tone(fq,t,b*B*.95,.16,'triangle'); tone(fq*2,t,b*B*.5,.03,'sine'); } t+=b*B; });
+  // ズン・チャッ・チャッ の伴奏
+  const M=S.meter||3, bassAt=M===4?[0,2]:[0], chordAt=M===4?[1,3]:[1,2];
+  S.chords.forEach((c,m)=>{ const ch=CHORD[c]||CHORD.C, tm=t0+m*M*B;
+    bassAt.forEach(k=>tone(hz(ch[0])/(ch[0].endsWith('3')?2:1),tm+k*B,B*1.1,.09,'sine'));
+    chordAt.forEach(k=>{ tone(hz(ch[1]),tm+k*B,B*.6,.035,'sine'); tone(hz(ch[2]),tm+k*B,B*.6,.035,'sine'); }); });
+  const end=Math.max(t,t0+S.chords.length*M*B)+B;
+  songTimer=setTimeout(()=>{ if(playing&&musicOn) scheduleSong(); }, (end-a.currentTime-.05)*1000); }
+function stopSong(){ clearTimeout(songTimer); songTimer=null; voices.slice().forEach(o=>{ try{o.stop();}catch(e){} }); voices.length=0; }
+
+/* ---------- きらきら ---------- */
+function burst(x,y,n,kind){ const cols=['#FFE14D','#FF8FC2','#7CC8FF','#B794F6'];
+  for(let k=0;k<n;k++){ const e=document.createElement('div'); e.className='fx';
+    const a=Math.random()*Math.PI*2, r=kind==='puff'?30+Math.random()*20:40+Math.random()*40;
+    e.style.setProperty('--x0',(x-9)+'px'); e.style.setProperty('--y0',(y-9)+'px');
+    e.style.setProperty('--x1',(x-9+Math.cos(a)*r)+'px'); e.style.setProperty('--y1',(y-9+Math.sin(a)*r)+'px');
+    e.innerHTML=kind==='puff'?`<svg viewBox="-10 -10 20 20"><circle r="8" fill="#E9DDE6"/></svg>`:`<svg viewBox="-15 -15 30 30">${starAt(0,0,14,cols[k%4])}</svg>`;
+    document.body.appendChild(e); setTimeout(()=>e.remove(),750); } }
+
+/* ---------- ドラッグ＆ドロップ ---------- */
+let drag=null;
+function startDrag(e,id){
+  if(drag){ drag.g.remove(); drag=null; }
+  document.querySelectorAll('.ghost').forEach(g=>g.remove());
+  e.preventDefault(); audio();
+  const b=BB[id], sc=visScale(); let w=(b.w+4)*sc, h=(b.h+4)*sc;
+  const minS=60, big=Math.max(w,h); if(big<minS){ w*=minS/big; h*=minS/big; }
+  const g=document.createElement('div'); g.className='ghost'; g.style.width=w+'px'; g.style.height=h+'px'; g.innerHTML=itemSVG(id,2);
+  document.body.appendChild(g); drag={id,g,w,h,pid:e.pointerId}; moveGhost(e.clientX,e.clientY);
+}
+function moveGhost(x,y){ drag.g.style.transform=`translate(${x-drag.w/2}px,${y-drag.h/2}px)`;
+  const hit=princessAt(x,y); figs.forEach((fg,i)=>fg.wrap.classList.toggle('hover',!!hit&&hit.i===i)); }
+function princessAt(x,y){
+  for(let i=0;i<figs.length;i++){ if(figs[i].wrap.hidden) continue; const s=svgOf(i); if(!s) continue; const m=s.getScreenCTM(); if(!m) continue;
+    const pt=s.createSVGPoint(); pt.x=x; pt.y=y; const l=pt.matrixTransform(m.inverse());
+    if(l.x>=-8&&l.x<=208&&l.y>=-10&&l.y<=415) return {i,x:l.x,y:l.y}; }
+  return null; }
+function inside(el,x,y){ const r=el.getBoundingClientRect(); return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom; }
+function endDrag(x,y){
+  if(!drag) return; const {id}=drag; drag.g.remove(); figs.forEach(fg=>fg.wrap.classList.remove('hover')); drag=null;
+  const slot=SLOT_OF[ITEMS[id].cat], onTrash=inside($('reset'),x,y), hit=onTrash?null:princessAt(x,y), onTray=onTrash||inside($('tray'),x,y);
+  if(slot!=='sticker'){
+    if(hit&&!onTray){ state.p[hit.i][slot]=id; chime(); burst(x,y,8); } else { puff(); burst(x,y,6,'puff'); }
+  } else if(hit&&!onTray){ state.p[hit.i].stickers.push({id,x:hit.x,y:hit.y}); chime(); burst(x,y,6); }
+  else if(!onTrash&&inside(stage,x,y)){ const r=stage.getBoundingClientRect(); state.free.push({id,fx:(x-r.left)/r.width,fy:(y-r.top)/r.height}); chime(); burst(x,y,6); }
+  else { puff(); burst(x,y,6,'puff'); }
+  renderAll(); save();
+}
+document.addEventListener('pointermove',e=>{ if(!drag) return;
+  if(e.pointerType==='mouse'&&e.buttons===0){ endDrag(e.clientX,e.clientY); return; }
+  if(e.pointerId===drag.pid){ e.preventDefault(); moveGhost(e.clientX,e.clientY); } },{passive:false});
+window.addEventListener('blur',()=>{ if(drag) endDrag(-9999,-9999); });
+document.addEventListener('visibilitychange',()=>{ if(document.hidden&&drag) endDrag(-9999,-9999); });
+document.addEventListener('pointerup',e=>{ if(drag&&e.pointerId===drag.pid) endDrag(e.clientX,e.clientY); });
+document.addEventListener('pointercancel',e=>{ if(drag&&e.pointerId===drag.pid) endDrag(e.clientX,e.clientY); });
+document.addEventListener('contextmenu',e=>e.preventDefault());
+
+// おしゃれ箱から取り出す
+$('items').addEventListener('pointerdown',e=>{ const t=e.target.closest('.tile'); if(t&&!drag) startDrag(e,t.dataset.id); });
+// 着ているものを持ち上げる（外して別の子へ・箱に戻すと消える）
+stage.addEventListener('pointerdown',e=>{
+  if(drag) return;
+  const fs=e.target.closest('.fs');
+  if(fs){ const j=+fs.dataset.j, k=state.free[j]; if(!k) return; state.free.splice(j,1); fs.style.visibility='hidden'; startDrag(e,k.id); return; }
+  const w=e.target.closest('.worn'); if(!w) return;
+  const i=+w.closest('svg').dataset.i, s=state.p[i];
+  if(w.dataset.slot){ const name=w.dataset.slot, id=s[name]; if(!id) return; delete s[name];
+    w.closest('svg').querySelectorAll(`[data-slot="${name}"]`).forEach(n=>n.style.visibility='hidden'); startDrag(e,id); }
+  else if(w.dataset.stk!=null){ const j=+w.dataset.stk, k=s.stickers[j]; if(!k) return; s.stickers.splice(j,1); w.style.visibility='hidden'; startDrag(e,k.id); }
+});
+
+
+/* ---------- ボタン ---------- */
+const PLAY_ICON=`<svg viewBox="0 0 20 20"><path d="M6,3.5 L16.5,10 L6,16.5Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>`;
+const STOP_ICON=`<svg viewBox="0 0 20 20"><rect x="4.5" y="4.5" width="11" height="11" rx="2.5" fill="#fff"/></svg>`;
+function setPlay(on){ playing=on; $('app').classList.toggle('playing',on);
+  $('play').innerHTML=on?STOP_ICON:PLAY_ICON; $('play').setAttribute('aria-label',on?'とまる':'おどる');
+  if(on&&musicOn) scheduleSong(); else stopSong(); }
+$('play').addEventListener('click',()=>{ audio(); setPlay(!playing); });
+const NOTE_ICON=on=>`<svg viewBox="0 0 24 24"><path d="M9,18 V5 L19,3 V16" fill="none" stroke="#D9467F" stroke-width="2.4" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="3" fill="#D9467F"/><circle cx="16.5" cy="16" r="3" fill="#D9467F"/>${on?'':'<line x1="3" y1="3" x2="21" y2="21" stroke="#8A7A86" stroke-width="2.6" stroke-linecap="round"/>'}</svg>`;
+$('music').innerHTML=NOTE_ICON(true);
+$('reset').innerHTML=`<svg viewBox="0 0 24 24"><g class="lid"><rect x="4" y="5" width="16" height="2.6" rx="1.3" fill="#D9467F"/><rect x="9.5" y="2.6" width="5" height="3" rx="1.2" fill="none" stroke="#D9467F" stroke-width="1.8"/></g>
+  <path d="M6,9 L7.2,20.5 Q7.4,22 9,22 L15,22 Q16.6,22 16.8,20.5 L18,9Z" fill="#FFC6DA" stroke="#D9467F" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M10,12 L10.4,19 M14,12 L13.6,19" stroke="#D9467F" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+$('music').addEventListener('click',()=>{ musicOn=!musicOn; const b=$('music'); b.innerHTML=NOTE_ICON(musicOn); b.setAttribute('aria-pressed',musicOn);
+  if(playing){ if(musicOn) scheduleSong(); else stopSong(); } });
+$('reset').addEventListener('click',()=>{ const b=$('reset'), r=b.getBoundingClientRect();
+  state=blank(); renderAll(); save(); puff(); burst(r.left+r.width/2,r.top+r.height/2,10,'puff');
+  b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); });
+
+let rz=null; window.addEventListener('resize',()=>{ clearTimeout(rz); rz=setTimeout(()=>{ renderFree(); fitTiles(); },120); });
+
+/* ---------- はじまり ---------- */
+function start(data){
+  if(data&&data.state) state=data.state; else load();
+  buildLookDefs(); measureAll(); buildStage(); renderItems(); renderAll(); setView(0); setPlay(false);
+  $('ptabs').addEventListener('click',e=>{ const b=e.target.closest('.ptab'); if(!b) return; audio(); const v=b.dataset.v; setView(v==='all'?'all':+v); });
+  requestAnimationFrame(()=>{ renderFree(); fitTiles(); });
+  if(window.claude&&window.claude.hot&&window.claude.hot.snapshot) window.claude.hot.snapshot(()=>({state}));
+}
+if(window.claude&&window.claude.hot&&window.claude.hot.ready) window.claude.hot.ready(start);
+else start((window.claude&&window.claude.hot&&window.claude.hot.data)||{});
+})();
+</script>
+
+</body>
+</html>
